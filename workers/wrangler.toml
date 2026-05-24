@@ -1,0 +1,12 @@
+name = "subscription-manager-api"
+main = "src/index.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+ALLOWED_ORIGIN = "https://akurah233mhz.github.io,http://127.0.0.1:5173,http://localhost:5173"
+
+# secrets (wrangler secret put で投入):
+#   NOTION_API_KEY
+#   NOTION_SUBSCRIPTIONS_DB_ID
+#   NOTION_SETTINGS_DB_ID
+#   API_SECRET                # フロントからの Authorization: Bearer 照合用
