@@ -41,6 +41,8 @@ export function subscriptionFromPage(page) {
     category: p.category?.select?.name ?? "",
     plan: plain(p.plan?.rich_text),
     amount: p.amount?.number ?? 0,
+    currency: p.currency?.select?.name ?? "JPY",
+    amountJpy: p.amountJpy?.number ?? null,
     cycle: p.cycle?.select?.name ?? "monthly",
     renewalDate: p.renewalDate?.date?.start ?? null,
     url: p.url?.url ?? "",
@@ -57,6 +59,8 @@ export function subscriptionToProperties(input) {
   if (input.category !== undefined) props.category = { select: input.category ? { name: input.category } : null };
   if (input.plan !== undefined) props.plan = { rich_text: rt(input.plan) };
   if (input.amount !== undefined) props.amount = { number: Number(input.amount) };
+  if (input.currency !== undefined) props.currency = { select: { name: input.currency || "JPY" } };
+  if (input.amountJpy !== undefined) props.amountJpy = { number: input.amountJpy === "" || input.amountJpy === null ? null : Number(input.amountJpy) };
   if (input.cycle !== undefined) props.cycle = { select: { name: input.cycle } };
   if (input.renewalDate !== undefined) props.renewalDate = { date: input.renewalDate ? { start: input.renewalDate } : null };
   if (input.url !== undefined) props.url = { url: input.url || null };

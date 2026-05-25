@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { makeTheme } from "./theme.js";
-import { daysUntil, formatDate, toMonthly, formatAmount } from "./utils.js";
+import { daysUntil, formatDate, toMonthly, toMonthlyJpy, effectiveAmountJpy, formatAmount, formatJpy } from "./utils.js";
 import { useSubscriptions } from "./hooks/useSubscriptions.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useMeta } from "./hooks/useMeta.js";
@@ -9,6 +9,7 @@ import { AdminPanel } from "./components/AdminPanel.jsx";
 import { ov, mod, iconBtn, inpStyle, Lbl, Inp, Sel } from "./styles.jsx";
 
 const FALLBACK_CATEGORIES = ["エンタメ", "音楽", "仕事・制作", "クラウド", "ゲーム", "保険", "ショッピング", "その他"];
+const CURRENCIES = ["JPY", "USD", "EUR", "GBP"];
 
 function uniq(values) {
   return [...new Set(values.filter(Boolean))];
@@ -20,6 +21,8 @@ function emptyForm(category) {
     category,
     plan: "",
     amount: "",
+    currency: "JPY",
+    amountJpy: "",
     cycle: "monthly",
     renewalDate: "",
     url: "",
@@ -73,13 +76,13 @@ export default function App() {
     if (filter !== "すべて") list = list.filter((s) => s.category === filter);
     if (searchText) list = list.filter((s) => s.name.toLowerCase().includes(searchText.toLowerCase()));
     if (sort === "renewal") list = [...list].sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate));
-    if (sort === "amount") list = [...list].sort((a, b) => toMonthly(b.amount, b.cycle) - toMonthly(a.amount, a.cycle));
+    if (sort === "amount") list = [...list].sort((a, b) => toMonthlyJpy(b) - toMonthlyJpy(a));
     if (sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ja"));
     return list;
   }, [subs, filter, sort, searchText]);
 
   const totalMonthly = useMemo(
-    () => subs.filter((s) => s.active).reduce((s, x) => s + toMonthly(x.amount, x.cycle), 0),
+    () => subs.filter((s) => s.active).reduce((s, x) => s + toMonthlyJpy(x), 0),
     [subs],
   );
 
@@ -96,6 +99,8 @@ export default function App() {
       category: sub.category || defaultCategory,
       plan: sub.plan || "",
       amount: String(sub.amount ?? ""),
+      currency: sub.currency || "JPY",
+      amountJpy: sub.amountJpy == null ? "" : String(sub.amountJpy),
       cycle: sub.cycle || "monthly",
       renewalDate: sub.renewalDate || "",
       url: sub.url || "",
@@ -108,9 +113,14 @@ export default function App() {
 
   async function saveForm() {
     if (!form.name || !form.amount || !form.renewalDate) return;
+    if (form.currency !== "JPY" && !form.amountJpy) return;
     if (saving) return;
     setSaving(true);
-    const payload = { ...form, amount: Number(form.amount) };
+    const payload = {
+      ...form,
+      amount: Number(form.amount),
+      amountJpy: form.currency === "JPY" ? Number(form.amount) : Number(form.amountJpy),
+    };
     try {
       if (editingId) await update(editingId, payload);
       else await create(payload);
@@ -306,6 +316,9 @@ export default function App() {
             const urgent = days <= 7;
             const soon = days <= 30;
             const isOpen = selectedId === sub.id;
+            const currency = sub.currency || "JPY";
+            const amountJpy = effectiveAmountJpy(sub);
+            const isForeign = currency !== "JPY";
             return (
               <div
                 key={sub.id}
@@ -340,10 +353,15 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ textAlign: "right", flexShrink: 0 }}>
-                    <div style={{ fontSize: 16, fontWeight: 800, color: t.text }}>{formatAmount(sub.amount, sub.cycle)}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: t.text }}>{formatAmount(sub.amount, sub.cycle, currency)}</div>
+                    {isForeign && (
+                      <div style={{ fontSize: 11, color: t.textSub }}>
+                        家計計上 {amountJpy == null ? "未設定" : formatJpy(amountJpy, sub.cycle)}
+                      </div>
+                    )}
                     {sub.cycle === "yearly" && (
                       <div style={{ fontSize: 11, color: t.textSub }}>
-                        月換算 ¥{toMonthly(sub.amount, sub.cycle).toLocaleString()}
+                        月換算 {amountJpy == null ? "未設定" : `¥${toMonthly(amountJpy, sub.cycle).toLocaleString()}`}
                       </div>
                     )}
                   </div>
@@ -516,15 +534,39 @@ export default function App() {
                 </Sel>
               </div>
               <div style={{ flex: 1 }}>
-                <Lbl t={t}>金額 (円) *</Lbl>
+                <Lbl t={t}>請求額 *</Lbl>
                 <Inp
                   t={t}
                   type="number"
+                  step="0.01"
                   value={form.amount}
                   onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                  placeholder="1490"
+                  placeholder={form.currency === "JPY" ? "1490" : "20.00"}
                 />
               </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <Lbl t={t}>通貨</Lbl>
+                <Sel t={t} value={form.currency} onChange={(e) => setForm((f) => ({ ...f, currency: e.target.value }))}>
+                  {CURRENCIES.map((c) => (
+                    <option key={c}>{c}</option>
+                  ))}
+                </Sel>
+              </div>
+              {form.currency !== "JPY" && (
+                <div style={{ flex: 1 }}>
+                  <Lbl t={t}>家計計上額 (円) *</Lbl>
+                  <Inp
+                    t={t}
+                    type="number"
+                    value={form.amountJpy}
+                    onChange={(e) => setForm((f) => ({ ...f, amountJpy: e.target.value }))}
+                    placeholder="3200"
+                  />
+                </div>
+              )}
             </div>
 
             <Lbl t={t}>次回更新日 *</Lbl>

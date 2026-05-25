@@ -15,10 +15,34 @@ export function toMonthly(amount, cycle) {
   return cycle === "yearly" ? Math.round(amount / 12) : amount;
 }
 
-export function formatAmount(amount, cycle) {
-  return cycle === "yearly"
-    ? `¥${amount.toLocaleString()}/年`
-    : `¥${amount.toLocaleString()}/月`;
+export function effectiveAmountJpy(sub) {
+  if (sub.amountJpy != null) return Number(sub.amountJpy);
+  if ((sub.currency || "JPY") === "JPY") return Number(sub.amount ?? 0);
+  return null;
+}
+
+export function toMonthlyJpy(sub) {
+  const amount = effectiveAmountJpy(sub);
+  return amount == null ? 0 : toMonthly(amount, sub.cycle);
+}
+
+export function formatJpy(amount, cycle) {
+  const value = Number(amount ?? 0);
+  return cycle === "yearly" ? `¥${value.toLocaleString()}/年` : `¥${value.toLocaleString()}/月`;
+}
+
+export function formatAmount(amount, cycle, currency = "JPY") {
+  const value = Number(amount ?? 0);
+  const suffix = cycle === "yearly" ? "/年" : "/月";
+  if (currency === "JPY") return formatJpy(value, cycle);
+
+  const formatted = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: value % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2,
+  }).format(value);
+  return `${formatted}${suffix}`;
 }
 
 export async function hashPin(pin) {

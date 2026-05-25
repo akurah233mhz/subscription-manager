@@ -46,7 +46,9 @@
 | name | Title | サービス名 |
 | category | Select | エンタメ / 音楽 / 仕事・制作 / クラウド / ゲーム / 保険 / ショッピング / その他 |
 | plan | Rich Text | プラン名（スタンダード、ファミリー等） |
-| amount | Number | 金額（円） |
+| amount | Number | 実際の請求額 |
+| currency | Select | `JPY` / `USD` / `EUR` / `GBP` |
+| amountJpy | Number | 家計集計用の円換算額 |
 | cycle | Select | `monthly` / `yearly` |
 | renewalDate | Date | 次回更新日 |
 | url | URL | 公式サイト |
@@ -216,8 +218,9 @@ headerBg: "#ffffff"
 
 ```
 [カテゴリバッジ] サービス名  プラン名（accent色）
-                                    ¥X,XXX/月（or /年）
-                                    月換算 ¥XXX（年契約の場合のみ）
+                                    ¥X,XXX/月（or $XX.XX/月）
+                                    家計計上 ¥X,XXX/月（外貨の場合のみ）
+                                    月換算 ¥XXX（年契約の場合のみ・家計計上額ベース）
 ● X日後に更新 · YYYY/MM/DD  [月契約|年契約バッジ]
 ```
 
@@ -237,7 +240,7 @@ headerBg: "#ffffff"
 ### 6-4. フィルタ・ソート
 
 - カテゴリフィルタ：Notion `subscriptions.category` のSelect optionsから取得し、先頭に「すべて」を追加する
-- ソート：更新日（デフォルト）/ 金額（月換算降順）/ 名前（日本語順）
+- ソート：更新日（デフォルト）/ 金額（月換算・家計計上額ベース降順）/ 名前（日本語順）
 - テキスト検索：サービス名の前方一致
 
 ### 6-5. PINモーダル
