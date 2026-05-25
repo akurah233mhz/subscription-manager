@@ -29,6 +29,10 @@ export const subscriptions = {
   remove: (id) => request(`/api/subscriptions/${id}`, { method: "DELETE" }),
 };
 
+export const meta = {
+  get: () => request("/api/meta"),
+};
+
 export const settings = {
   list: () => request("/api/settings"),
   update: (key, value) => request(`/api/settings/${key}`, { method: "PATCH", body: JSON.stringify({ value }) }),

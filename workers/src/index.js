@@ -3,6 +3,7 @@ import {
   NotionError,
   subscriptionFromPage,
   subscriptionToProperties,
+  databaseSelectOptions,
   settingFromPage,
   settingToProperties,
 } from "./notion.js";
@@ -48,6 +49,7 @@ async function route(request, url, env) {
 
   if (pathname === "/api/subscriptions" && method === "GET") return listSubscriptions(env);
   if (pathname === "/api/subscriptions" && method === "POST") return createSubscription(await request.json(), env);
+  if (pathname === "/api/meta" && method === "GET") return getMeta(env);
 
   const subMatch = pathname.match(/^\/api\/subscriptions\/([0-9a-f-]{36})$/i);
   if (subMatch && method === "PATCH") return updateSubscription(subMatch[1], await request.json(), env);
@@ -58,6 +60,13 @@ async function route(request, url, env) {
   if (setMatch && method === "PATCH") return updateSetting(setMatch[1], await request.json(), env);
 
   return json({ error: "Not found" }, 404);
+}
+
+async function getMeta(env) {
+  const database = await notionFetch(`/databases/${env.NOTION_SUBSCRIPTIONS_DB_ID}`, { method: "GET" }, env);
+  return json({
+    categories: databaseSelectOptions(database, "category"),
+  });
 }
 
 async function listSubscriptions(env) {

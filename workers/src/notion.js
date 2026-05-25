@@ -67,6 +67,12 @@ export function subscriptionToProperties(input) {
   return props;
 }
 
+export function databaseSelectOptions(database, propertyName) {
+  const property = database.properties?.[propertyName];
+  if (property?.type !== "select") return [];
+  return property.select.options.map((option) => option.name).filter(Boolean);
+}
+
 export function settingFromPage(page) {
   const p = page.properties;
   return {

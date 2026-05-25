@@ -8,14 +8,14 @@
 
 家族（本人・妻・子供）が共有して使うサブスクリプション管理Webアプリ。
 
-| 項目 | 内容 |
-|---|---|
-| フロントエンド | React (Vite) + PWA対応 |
-| バックエンド/DB | Notion Database |
-| APIプロキシ | Cloudflare Workers（APIキー隠蔽） |
-| ホスティング | GitHub Pages |
-| リポジトリ | github.com/akurah233mhz/subscription-manager（新規作成） |
-| 作業ルート | D:\claude-projects\subscription-manager |
+| 項目        | 内容                                                 |
+| --------- | -------------------------------------------------- |
+| フロントエンド   | React (Vite) + PWA対応                               |
+| バックエンド/DB | Notion Database                                    |
+| APIプロキシ   | Cloudflare Workers（APIキー隠蔽）                        |
+| ホスティング    | GitHub Pages                                       |
+| リポジトリ     | github.com/akurah233mhz/subscription-manager（新規作成） |
+| 作業ルート     | D:\claude-projects\home\subscription-manager       |
 
 ---
 
@@ -83,6 +83,7 @@
 | POST | `/api/subscriptions` | 新規追加 |
 | PATCH | `/api/subscriptions/:id` | 更新 |
 | DELETE | `/api/subscriptions/:id` | 論理削除（active=false） |
+| GET | `/api/meta` | Notion DBのメタ情報取得（カテゴリSelect options等） |
 | GET | `/api/settings` | 設定全取得 |
 | PATCH | `/api/settings/:key` | 設定値更新（PIN変更等） |
 
@@ -235,7 +236,7 @@ headerBg: "#ffffff"
 
 ### 6-4. フィルタ・ソート
 
-- カテゴリフィルタ：`["すべて","エンタメ","音楽","仕事・制作","クラウド","ゲーム","保険","ショッピング","その他"]`
+- カテゴリフィルタ：Notion `subscriptions.category` のSelect optionsから取得し、先頭に「すべて」を追加する
 - ソート：更新日（デフォルト）/ 金額（月換算降順）/ 名前（日本語順）
 - テキスト検索：サービス名の前方一致
 

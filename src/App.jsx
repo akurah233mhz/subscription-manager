@@ -3,25 +3,31 @@ import { makeTheme } from "./theme.js";
 import { daysUntil, formatDate, toMonthly, formatAmount } from "./utils.js";
 import { useSubscriptions } from "./hooks/useSubscriptions.js";
 import { useSettings } from "./hooks/useSettings.js";
+import { useMeta } from "./hooks/useMeta.js";
 import { PinModal } from "./components/PinModal.jsx";
 import { AdminPanel } from "./components/AdminPanel.jsx";
 import { ov, mod, iconBtn, inpStyle, Lbl, Inp, Sel } from "./styles.jsx";
 
-const CATEGORIES = ["すべて", "エンタメ", "音楽", "仕事・制作", "クラウド", "ゲーム", "保険", "ショッピング", "その他"];
-const FORM_CATEGORIES = CATEGORIES.filter((c) => c !== "すべて");
+const FALLBACK_CATEGORIES = ["エンタメ", "音楽", "仕事・制作", "クラウド", "ゲーム", "保険", "ショッピング", "その他"];
 
-const emptyForm = {
-  name: "",
-  category: "エンタメ",
-  plan: "",
-  amount: "",
-  cycle: "monthly",
-  renewalDate: "",
-  url: "",
-  cancelUrl: "",
-  cancelMethod: "",
-  notes: "",
-};
+function uniq(values) {
+  return [...new Set(values.filter(Boolean))];
+}
+
+function emptyForm(category) {
+  return {
+    name: "",
+    category,
+    plan: "",
+    amount: "",
+    cycle: "monthly",
+    renewalDate: "",
+    url: "",
+    cancelUrl: "",
+    cancelMethod: "",
+    notes: "",
+  };
+}
 
 export default function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("theme") === "dark");
@@ -35,19 +41,32 @@ export default function App() {
 
   const { items: subs, loading, error, create, update, remove } = useSubscriptions();
   const { verifyPin, setPin, loading: settingsLoading } = useSettings();
+  const { categories: notionCategories, loading: metaLoading, error: metaError } = useMeta();
 
   const [filter, setFilter] = useState("すべて");
   const [sort, setSort] = useState("renewal");
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(() => emptyForm(FALLBACK_CATEGORIES[0]));
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [searchText, setSearchText] = useState("");
   const [pinTarget, setPinTarget] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAdminPin, setShowAdminPin] = useState(false);
+
+  const subscriptionCategories = useMemo(() => uniq(subs.map((s) => s.category)), [subs]);
+  const formCategories = useMemo(() => {
+    const fromNotion = notionCategories.length ? notionCategories : FALLBACK_CATEGORIES;
+    return uniq([...fromNotion, ...subscriptionCategories]);
+  }, [notionCategories, subscriptionCategories]);
+  const categories = useMemo(() => ["すべて", ...formCategories], [formCategories]);
+  const defaultCategory = formCategories[0] || FALLBACK_CATEGORIES[0];
+
+  useEffect(() => {
+    if (filter !== "すべて" && !categories.includes(filter)) setFilter("すべて");
+  }, [categories, filter]);
 
   const filtered = useMemo(() => {
     let list = subs.filter((s) => s.active);
@@ -66,7 +85,7 @@ export default function App() {
 
   function openAdd() {
     setEditingId(null);
-    setForm(emptyForm);
+    setForm(emptyForm(defaultCategory));
     setShowForm(true);
   }
 
@@ -74,7 +93,7 @@ export default function App() {
     setEditingId(sub.id);
     setForm({
       name: sub.name,
-      category: sub.category || "エンタメ",
+      category: sub.category || defaultCategory,
       plan: sub.plan || "",
       amount: String(sub.amount ?? ""),
       cycle: sub.cycle || "monthly",
@@ -224,7 +243,7 @@ export default function App() {
           onChange={(e) => setSearchText(e.target.value)}
         />
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               style={{
@@ -270,6 +289,11 @@ export default function App() {
 
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "12px 20px 40px", display: "flex", flexDirection: "column", gap: 8 }}>
         {loading && <div style={{ textAlign: "center", color: t.textMute, padding: "40px 0" }}>読み込み中...</div>}
+        {!metaLoading && metaError && (
+          <div style={{ color: t.soon, padding: "12px 16px", background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 8 }}>
+            カテゴリ情報の取得に失敗しました。既定カテゴリで表示しています。
+          </div>
+        )}
         {error && (
           <div style={{ color: t.urgent, padding: "16px", background: t.urgentBg, border: `1px solid ${t.urgent}`, borderRadius: 8 }}>
             読み込みに失敗しました: {error.message}
@@ -472,7 +496,7 @@ export default function App() {
               <div style={{ flex: 1 }}>
                 <Lbl t={t}>カテゴリ</Lbl>
                 <Sel t={t} value={form.category} onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}>
-                  {FORM_CATEGORIES.map((c) => (
+                  {formCategories.map((c) => (
                     <option key={c}>{c}</option>
                   ))}
                 </Sel>
