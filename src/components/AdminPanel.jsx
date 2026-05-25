@@ -61,7 +61,7 @@ export function AdminPanel({ t, verifyPin, setPin, onClose }) {
               </button>
             </div>
             <div style={{ marginTop: 8, padding: "10px 12px", background: t.surfaceAlt, borderRadius: 8, fontSize: 12, color: t.textSub }}>
-              💡 管理PINは解約ページへ進む際に必要です。家族には教えないでください。
+              管理PINは管理設定を開く際に必要です。家族には教えないでください。
             </div>
           </>
         )}

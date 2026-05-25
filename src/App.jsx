@@ -55,7 +55,6 @@ export default function App() {
   const [saving, setSaving] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [searchText, setSearchText] = useState("");
-  const [pinTarget, setPinTarget] = useState(null);
   const [showAdmin, setShowAdmin] = useState(false);
   const [showAdminPin, setShowAdminPin] = useState(false);
 
@@ -455,7 +454,7 @@ export default function App() {
                             fontWeight: 700,
                             cursor: "pointer",
                           }}
-                          onClick={() => setPinTarget({ url: sub.cancelUrl, name: sub.name })}
+                          onClick={() => window.open(sub.cancelUrl, "_blank", "noopener,noreferrer")}
                         >
                           解約ページへ →
                         </button>
@@ -675,19 +674,6 @@ export default function App() {
             </div>
           </div>
         </div>
-      )}
-
-      {pinTarget && (
-        <PinModal
-          t={t}
-          verifyPin={verifyPin}
-          title={`「${pinTarget.name}」の解約ページへ`}
-          onSuccess={() => {
-            window.open(pinTarget.url, "_blank", "noopener,noreferrer");
-            setPinTarget(null);
-          }}
-          onClose={() => setPinTarget(null)}
-        />
       )}
 
       {showAdminPin && (
