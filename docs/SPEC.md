@@ -46,6 +46,7 @@
 | name | Title | サービス名 |
 | category | Select | エンタメ / 音楽 / 仕事・制作 / クラウド / ゲーム / 保険 / ショッピング / その他 |
 | contractOwner | Select | 本人 / 妻 / 家族 / 子供 |
+| paymentMethod | Select | クレジットカード / Apple / Google / PayPal / 銀行口座 / 携帯決済 / その他 |
 | plan | Rich Text | プラン名（スタンダード、ファミリー等） |
 | amount | Number | 実際の請求額 |
 | currency | Select | `JPY` / `USD` / `EUR` / `GBP` |
@@ -219,6 +220,7 @@ headerBg: "#ffffff"
 ```
 [カテゴリバッジ] サービス名  プラン名（accent色）
                                     契約者バッジ（設定時のみ）
+                                    支払い方法バッジ（設定時のみ）
                                     ¥X,XXX/月（or $XX.XX/月）
                                     家計計上 ¥X,XXX/月（外貨の場合のみ）
                                     月換算 ¥XXX（年契約の場合のみ・家計計上額ベース）
@@ -310,7 +312,6 @@ async function hashPin(pin) {
 | 機能 | 概要 |
 |---|---|
 | 更新日通知 | Cloudflare Workers のCron Trigger + LINE Notify or メール |
-| 支払い方法フィールド | カード番号末尾・口座情報の管理 |
 | 解約済みアーカイブ | active=falseの一覧表示 |
 | Supabase移行 | 本格権限管理が必要になった場合 |
 

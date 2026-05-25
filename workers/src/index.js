@@ -67,6 +67,7 @@ async function getMeta(env) {
   return json({
     categories: databaseSelectOptions(database, "category"),
     contractOwners: databaseSelectOptions(database, "contractOwner"),
+    paymentMethods: databaseSelectOptions(database, "paymentMethod"),
   });
 }
 

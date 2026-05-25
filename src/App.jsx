@@ -10,6 +10,7 @@ import { ov, mod, iconBtn, inpStyle, Lbl, Inp, Sel } from "./styles.jsx";
 
 const FALLBACK_CATEGORIES = ["エンタメ", "音楽", "仕事・制作", "クラウド", "ゲーム", "保険", "ショッピング", "その他"];
 const FALLBACK_CONTRACT_OWNERS = ["本人", "妻", "家族", "子供"];
+const FALLBACK_PAYMENT_METHODS = ["クレジットカード", "Apple", "Google", "PayPal", "銀行口座", "携帯決済", "その他"];
 const CURRENCIES = ["JPY", "USD", "EUR", "GBP"];
 
 function uniq(values) {
@@ -21,6 +22,7 @@ function emptyForm(category) {
     name: "",
     category,
     contractOwner: "",
+    paymentMethod: "",
     plan: "",
     amount: "",
     currency: "JPY",
@@ -46,7 +48,13 @@ export default function App() {
 
   const { items: subs, loading, error, create, update, remove } = useSubscriptions();
   const { verifyPin, setPin, loading: settingsLoading } = useSettings();
-  const { categories: notionCategories, contractOwners: notionContractOwners, loading: metaLoading, error: metaError } = useMeta();
+  const {
+    categories: notionCategories,
+    contractOwners: notionContractOwners,
+    paymentMethods: notionPaymentMethods,
+    loading: metaLoading,
+    error: metaError,
+  } = useMeta();
 
   const [filter, setFilter] = useState("すべて");
   const [sort, setSort] = useState("renewal");
@@ -72,6 +80,11 @@ export default function App() {
     const fromNotion = notionContractOwners.length ? notionContractOwners : FALLBACK_CONTRACT_OWNERS;
     return uniq([...fromNotion, ...subscriptionContractOwners]);
   }, [notionContractOwners, subscriptionContractOwners]);
+  const subscriptionPaymentMethods = useMemo(() => uniq(subs.map((s) => s.paymentMethod)), [subs]);
+  const paymentMethods = useMemo(() => {
+    const fromNotion = notionPaymentMethods.length ? notionPaymentMethods : FALLBACK_PAYMENT_METHODS;
+    return uniq([...fromNotion, ...subscriptionPaymentMethods]);
+  }, [notionPaymentMethods, subscriptionPaymentMethods]);
 
   useEffect(() => {
     if (filter !== "すべて" && !categories.includes(filter)) setFilter("すべて");
@@ -104,6 +117,7 @@ export default function App() {
       name: sub.name,
       category: sub.category || defaultCategory,
       contractOwner: sub.contractOwner || "",
+      paymentMethod: sub.paymentMethod || "",
       plan: sub.plan || "",
       amount: String(sub.amount ?? ""),
       currency: sub.currency || "JPY",
@@ -369,6 +383,20 @@ export default function App() {
                           {sub.contractOwner}
                         </span>
                       )}
+                      {sub.paymentMethod && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: t.textSub,
+                            background: t.surfaceAlt,
+                            border: `1px solid ${t.border}`,
+                            borderRadius: 5,
+                            padding: "1px 8px",
+                          }}
+                        >
+                          {sub.paymentMethod}
+                        </span>
+                      )}
                       <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{sub.name}</span>
                       {sub.plan && <span style={{ fontSize: 12, color: t.accent, fontWeight: 600 }}>{sub.plan}</span>}
                     </div>
@@ -556,6 +584,18 @@ export default function App() {
                 <Lbl t={t}>プラン</Lbl>
                 <Inp t={t} value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))} placeholder="スタンダード" />
               </div>
+              <div style={{ flex: 1 }}>
+                <Lbl t={t}>支払い方法</Lbl>
+                <Sel t={t} value={form.paymentMethod} onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}>
+                  <option value="">未設定</option>
+                  {paymentMethods.map((method) => (
+                    <option key={method}>{method}</option>
+                  ))}
+                </Sel>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <Lbl t={t}>サイクル</Lbl>
                 <Sel t={t} value={form.cycle} onChange={(e) => setForm((f) => ({ ...f, cycle: e.target.value }))}>
