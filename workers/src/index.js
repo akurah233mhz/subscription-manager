@@ -66,6 +66,7 @@ async function getMeta(env) {
   const database = await notionFetch(`/databases/${env.NOTION_SUBSCRIPTIONS_DB_ID}`, { method: "GET" }, env);
   return json({
     categories: databaseSelectOptions(database, "category"),
+    contractOwners: databaseSelectOptions(database, "contractOwner"),
   });
 }
 

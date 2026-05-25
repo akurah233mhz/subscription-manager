@@ -39,6 +39,7 @@ export function subscriptionFromPage(page) {
     id: page.id,
     name: plain(p.name?.title),
     category: p.category?.select?.name ?? "",
+    contractOwner: p.contractOwner?.select?.name ?? "",
     plan: plain(p.plan?.rich_text),
     amount: p.amount?.number ?? 0,
     currency: p.currency?.select?.name ?? "JPY",
@@ -57,6 +58,7 @@ export function subscriptionToProperties(input) {
   const props = {};
   if (input.name !== undefined) props.name = { title: title(input.name) };
   if (input.category !== undefined) props.category = { select: input.category ? { name: input.category } : null };
+  if (input.contractOwner !== undefined) props.contractOwner = { select: input.contractOwner ? { name: input.contractOwner } : null };
   if (input.plan !== undefined) props.plan = { rich_text: rt(input.plan) };
   if (input.amount !== undefined) props.amount = { number: Number(input.amount) };
   if (input.currency !== undefined) props.currency = { select: { name: input.currency || "JPY" } };

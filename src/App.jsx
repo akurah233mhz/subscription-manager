@@ -9,6 +9,7 @@ import { AdminPanel } from "./components/AdminPanel.jsx";
 import { ov, mod, iconBtn, inpStyle, Lbl, Inp, Sel } from "./styles.jsx";
 
 const FALLBACK_CATEGORIES = ["エンタメ", "音楽", "仕事・制作", "クラウド", "ゲーム", "保険", "ショッピング", "その他"];
+const FALLBACK_CONTRACT_OWNERS = ["本人", "妻", "家族", "子供"];
 const CURRENCIES = ["JPY", "USD", "EUR", "GBP"];
 
 function uniq(values) {
@@ -19,6 +20,7 @@ function emptyForm(category) {
   return {
     name: "",
     category,
+    contractOwner: "",
     plan: "",
     amount: "",
     currency: "JPY",
@@ -44,7 +46,7 @@ export default function App() {
 
   const { items: subs, loading, error, create, update, remove } = useSubscriptions();
   const { verifyPin, setPin, loading: settingsLoading } = useSettings();
-  const { categories: notionCategories, loading: metaLoading, error: metaError } = useMeta();
+  const { categories: notionCategories, contractOwners: notionContractOwners, loading: metaLoading, error: metaError } = useMeta();
 
   const [filter, setFilter] = useState("すべて");
   const [sort, setSort] = useState("renewal");
@@ -65,6 +67,11 @@ export default function App() {
   }, [notionCategories, subscriptionCategories]);
   const categories = useMemo(() => ["すべて", ...formCategories], [formCategories]);
   const defaultCategory = formCategories[0] || FALLBACK_CATEGORIES[0];
+  const subscriptionContractOwners = useMemo(() => uniq(subs.map((s) => s.contractOwner)), [subs]);
+  const contractOwners = useMemo(() => {
+    const fromNotion = notionContractOwners.length ? notionContractOwners : FALLBACK_CONTRACT_OWNERS;
+    return uniq([...fromNotion, ...subscriptionContractOwners]);
+  }, [notionContractOwners, subscriptionContractOwners]);
 
   useEffect(() => {
     if (filter !== "すべて" && !categories.includes(filter)) setFilter("すべて");
@@ -96,6 +103,7 @@ export default function App() {
     setForm({
       name: sub.name,
       category: sub.category || defaultCategory,
+      contractOwner: sub.contractOwner || "",
       plan: sub.plan || "",
       amount: String(sub.amount ?? ""),
       currency: sub.currency || "JPY",
@@ -347,6 +355,20 @@ export default function App() {
                       >
                         {sub.category}
                       </span>
+                      {sub.contractOwner && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: t.textSub,
+                            background: t.surfaceAlt,
+                            border: `1px solid ${t.border}`,
+                            borderRadius: 5,
+                            padding: "1px 8px",
+                          }}
+                        >
+                          {sub.contractOwner}
+                        </span>
+                      )}
                       <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{sub.name}</span>
                       {sub.plan && <span style={{ fontSize: 12, color: t.accent, fontWeight: 600 }}>{sub.plan}</span>}
                     </div>
@@ -519,12 +541,21 @@ export default function App() {
                 </Sel>
               </div>
               <div style={{ flex: 1 }}>
-                <Lbl t={t}>プラン</Lbl>
-                <Inp t={t} value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))} placeholder="スタンダード" />
+                <Lbl t={t}>契約者</Lbl>
+                <Sel t={t} value={form.contractOwner} onChange={(e) => setForm((f) => ({ ...f, contractOwner: e.target.value }))}>
+                  <option value="">未設定</option>
+                  {contractOwners.map((owner) => (
+                    <option key={owner}>{owner}</option>
+                  ))}
+                </Sel>
               </div>
             </div>
 
             <div style={{ display: "flex", gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <Lbl t={t}>プラン</Lbl>
+                <Inp t={t} value={form.plan} onChange={(e) => setForm((f) => ({ ...f, plan: e.target.value }))} placeholder="スタンダード" />
+              </div>
               <div style={{ flex: 1 }}>
                 <Lbl t={t}>サイクル</Lbl>
                 <Sel t={t} value={form.cycle} onChange={(e) => setForm((f) => ({ ...f, cycle: e.target.value }))}>
@@ -532,6 +563,9 @@ export default function App() {
                   <option value="yearly">年額</option>
                 </Sel>
               </div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10 }}>
               <div style={{ flex: 1 }}>
                 <Lbl t={t}>請求額 *</Lbl>
                 <Inp
