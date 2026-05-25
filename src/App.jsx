@@ -369,34 +369,6 @@ export default function App() {
                       >
                         {sub.category}
                       </span>
-                      {sub.contractOwner && (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: t.textSub,
-                            background: t.surfaceAlt,
-                            border: `1px solid ${t.border}`,
-                            borderRadius: 5,
-                            padding: "1px 8px",
-                          }}
-                        >
-                          {sub.contractOwner}
-                        </span>
-                      )}
-                      {sub.paymentMethod && (
-                        <span
-                          style={{
-                            fontSize: 11,
-                            color: t.textSub,
-                            background: t.surfaceAlt,
-                            border: `1px solid ${t.border}`,
-                            borderRadius: 5,
-                            padding: "1px 8px",
-                          }}
-                        >
-                          {sub.paymentMethod}
-                        </span>
-                      )}
                       <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{sub.name}</span>
                       {sub.plan && <span style={{ fontSize: 12, color: t.accent, fontWeight: 600 }}>{sub.plan}</span>}
                     </div>
@@ -450,6 +422,20 @@ export default function App() {
                 {isOpen && (
                   <div style={{ marginTop: 14 }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ height: 1, background: t.border, marginBottom: 14 }} />
+                    {(sub.contractOwner || sub.paymentMethod) && (
+                      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 12 }}>
+                        {sub.contractOwner && (
+                          <div style={{ fontSize: 12, color: t.textSub, background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 6, padding: "4px 8px" }}>
+                            契約者: {sub.contractOwner}
+                          </div>
+                        )}
+                        {sub.paymentMethod && (
+                          <div style={{ fontSize: 12, color: t.textSub, background: t.surfaceAlt, border: `1px solid ${t.border}`, borderRadius: 6, padding: "4px 8px" }}>
+                            支払い: {sub.paymentMethod}
+                          </div>
+                        )}
+                      </div>
+                    )}
                     {sub.notes && (
                       <div style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, color: t.textMute, marginBottom: 3, fontWeight: 600, letterSpacing: 0.5 }}>メモ</div>
