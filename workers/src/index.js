@@ -109,6 +109,8 @@ async function createSubscription(input, env) {
 }
 
 async function updateSubscription(id, input, env) {
+  if (input.cancelled !== undefined) await ensureCancelledProperty(env);
+
   const updated = await notionFetch(
     `/pages/${id}`,
     {
@@ -130,6 +132,24 @@ async function deleteSubscription(id, env) {
     env,
   );
   return json(subscriptionFromPage(updated));
+}
+
+async function ensureCancelledProperty(env) {
+  const database = await notionFetch(`/databases/${env.NOTION_SUBSCRIPTIONS_DB_ID}`, { method: "GET" }, env);
+  if (database.properties?.cancelled?.type === "checkbox") return;
+
+  await notionFetch(
+    `/databases/${env.NOTION_SUBSCRIPTIONS_DB_ID}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        properties: {
+          cancelled: { checkbox: {} },
+        },
+      }),
+    },
+    env,
+  );
 }
 
 async function listSettings(env) {

@@ -163,7 +163,16 @@ export default function App() {
       setSelectedId(null);
       setDeleteTarget(null);
     } catch (e) {
-      alert(`解約済みへの移動に失敗: ${e.message}`);
+      alert(`アーカイブへの移動に失敗: ${e.message}`);
+    }
+  }
+
+  async function setCancelled(sub, cancelled) {
+    try {
+      await update(sub.id, { cancelled });
+      setSelectedId(null);
+    } catch (e) {
+      alert(`解約状態の更新に失敗: ${e.message}`);
     }
   }
 
@@ -288,7 +297,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
           {[
             ["active", `契約中 ${subs.filter((s) => s.active).length}`],
-            ["archived", `解約済み ${archivedSubs.length}`],
+            ["archived", `アーカイブ ${archivedSubs.length}`],
           ].map(([val, label]) => (
             <button
               key={val}
@@ -379,6 +388,9 @@ export default function App() {
             const currency = sub.currency || "JPY";
             const amountJpy = effectiveAmountJpy(sub);
             const isForeign = currency !== "JPY";
+            const dateLabel = sub.cancelled
+              ? `${formatDate(sub.renewalDate)}まで利用可`
+              : `${days <= 0 ? "本日更新" : `${days}日後に更新`} · ${formatDate(sub.renewalDate)}`;
             return (
               <div
                 key={sub.id}
@@ -408,6 +420,21 @@ export default function App() {
                       >
                         {sub.category}
                       </span>
+                      {sub.cancelled && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: t.cancelRedText,
+                            background: t.cancelRedBg,
+                            border: `1px solid ${t.cancelRedBorder}`,
+                            borderRadius: 5,
+                            padding: "1px 8px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          解約手続き済み
+                        </span>
+                      )}
                       <span style={{ fontSize: 16, fontWeight: 700, color: t.text }}>{sub.name}</span>
                       {sub.plan && <span style={{ fontSize: 12, color: t.accent, fontWeight: 600 }}>{sub.plan}</span>}
                     </div>
@@ -440,7 +467,7 @@ export default function App() {
                 >
                   <span>{urgent ? "●" : soon ? "●" : "○"}</span>
                   <span style={{ fontWeight: urgent || soon ? 700 : 400 }}>
-                    {days <= 0 ? "本日更新" : `${days}日後に更新`} &nbsp;·&nbsp; {formatDate(sub.renewalDate)}
+                    {dateLabel}
                   </span>
                   <span
                     style={{
@@ -550,20 +577,38 @@ export default function App() {
                         編集
                       </button>
                       {view === "active" ? (
-                        <button
-                          style={{
-                            background: "transparent",
-                            color: t.textMute,
-                            border: "none",
-                            borderRadius: 8,
-                            padding: "8px 10px",
-                            fontSize: 13,
-                            cursor: "pointer",
-                          }}
-                          onClick={() => setDeleteTarget(sub)}
-                        >
-                          解約済みにする
-                        </button>
+                        <>
+                          <button
+                            style={{
+                              background: "transparent",
+                              color: sub.cancelled ? t.textSub : t.textMute,
+                              border: sub.cancelled ? `1px solid ${t.border}` : "none",
+                              borderRadius: 8,
+                              padding: "8px 10px",
+                              fontSize: 13,
+                              cursor: "pointer",
+                            }}
+                            onClick={() => setCancelled(sub, !sub.cancelled)}
+                          >
+                            {sub.cancelled ? "解約状態を戻す" : "解約手続き済みにする"}
+                          </button>
+                          {sub.cancelled && (
+                            <button
+                              style={{
+                                background: "transparent",
+                                color: t.textMute,
+                                border: "none",
+                                borderRadius: 8,
+                                padding: "8px 10px",
+                                fontSize: 13,
+                                cursor: "pointer",
+                              }}
+                              onClick={() => setDeleteTarget(sub)}
+                            >
+                              アーカイブへ移動
+                            </button>
+                          )}
+                        </>
                       ) : (
                         <button
                           style={{
@@ -589,7 +634,7 @@ export default function App() {
           })}
         {!loading && !error && filtered.length === 0 && (
           <div style={{ textAlign: "center", color: t.textMute, padding: "40px 0" }}>
-            {view === "archived" ? "解約済みのサブスクはありません" : "該当するサブスクがありません"}
+            {view === "archived" ? "アーカイブ済みのサブスクはありません" : "該当するサブスクがありません"}
           </div>
         )}
       </div>
@@ -758,9 +803,9 @@ export default function App() {
       {deleteTarget && (
         <div style={ov()} onClick={() => setDeleteTarget(null)}>
           <div style={{ ...mod(t), maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>解約済みへ移動</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>アーカイブへ移動</div>
             <p style={{ color: t.textSub, fontSize: 14, marginBottom: 20 }}>
-              「{deleteTarget.name}」を解約済みアーカイブへ移動しますか？
+              「{deleteTarget.name}」を一覧から外して解約済みアーカイブへ移動しますか？
             </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button

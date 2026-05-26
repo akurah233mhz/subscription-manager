@@ -50,7 +50,7 @@ export function useSubscriptions() {
   }, []);
 
   const restore = useCallback(
-    async (id) => update(id, { active: true }),
+    async (id) => update(id, { active: true, cancelled: false }),
     [update],
   );
 

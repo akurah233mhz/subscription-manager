@@ -52,6 +52,7 @@ export function subscriptionFromPage(page) {
     cancelMethod: plain(p.cancelMethod?.rich_text),
     notes: plain(p.notes?.rich_text),
     active: p.active?.checkbox ?? true,
+    cancelled: p.cancelled?.checkbox ?? false,
   };
 }
 
@@ -72,6 +73,7 @@ export function subscriptionToProperties(input) {
   if (input.cancelMethod !== undefined) props.cancelMethod = { rich_text: rt(input.cancelMethod) };
   if (input.notes !== undefined) props.notes = { rich_text: rt(input.notes) };
   if (input.active !== undefined) props.active = { checkbox: !!input.active };
+  if (input.cancelled !== undefined) props.cancelled = { checkbox: !!input.cancelled };
   return props;
 }
 

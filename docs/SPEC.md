@@ -57,7 +57,8 @@
 | cancelUrl | URL | 解約ページ |
 | cancelMethod | Rich Text | 解約手順テキスト |
 | notes | Rich Text | メモ |
-| active | Checkbox | false = 論理削除（一覧非表示） |
+| active | Checkbox | false = アーカイブ（一覧非表示） |
+| cancelled | Checkbox | true = 解約手続き済み（期限までは契約中一覧に表示） |
 
 ### 3-2. 設定DB：`settings`
 
@@ -87,7 +88,7 @@
 | GET | `/api/subscriptions?status=all` | 全サブスク取得 |
 | POST | `/api/subscriptions` | 新規追加 |
 | PATCH | `/api/subscriptions/:id` | 更新 |
-| DELETE | `/api/subscriptions/:id` | 論理削除（active=false） |
+| DELETE | `/api/subscriptions/:id` | アーカイブ（active=false） |
 | GET | `/api/meta` | Notion DBのメタ情報取得（カテゴリSelect options等） |
 | GET | `/api/settings` | 設定全取得 |
 | PATCH | `/api/settings/:key` | 設定値更新（PIN変更等） |
@@ -149,14 +150,20 @@ App起動
   → フォーム入力 → POST or PATCH /api/subscriptions
   → 成功後にstateを更新（再fetchしてもよい）
 
-削除
+解約手続き済み
+  → PATCH /api/subscriptions/:id { cancelled: true }
+  → active=trueのまま契約中一覧に残す
+  → カードに「解約手続き済み」バッジを表示
+  → 更新日表示を「YYYY/MM/DDまで利用可」に切り替える
+
+アーカイブ
   → DELETE /api/subscriptions/:id
   → Notionのactiveをfalseに更新
-  → 契約中stateから除去し、解約済みstateへ追加
+  → 契約中stateから除去し、アーカイブstateへ追加
 
 復元
-  → PATCH /api/subscriptions/:id { active: true }
-  → 解約済みstateから除去し、契約中stateへ追加
+  → PATCH /api/subscriptions/:id { active: true, cancelled: false }
+  → アーカイブstateから除去し、契約中stateへ追加
 
 PIN変更
   → 入力をSHA-256ハッシュ化
@@ -227,18 +234,21 @@ headerBg: "#ffffff"
 
 ```
 [カテゴリバッジ] サービス名  プラン名（accent色）
+              [解約手続き済み]（cancelled=trueの場合）
                                     ¥X,XXX/月（or $XX.XX/月）
                                     家計計上 ¥X,XXX/月（外貨の場合のみ）
                                     月換算 ¥XXX（年契約の場合のみ・家計計上額ベース）
 ● X日後に更新 · YYYY/MM/DD  [月契約|年契約バッジ]
+● YYYY/MM/DDまで利用可       [月契約|年契約バッジ]（cancelled=trueの場合）
 ```
 
 タップで展開：
 - 契約者・支払い方法（設定時のみ）
 - メモ（あれば）
 - 解約方法テキスト（グレーの枠内）
-- 契約中タブのボタン行：`🌐 公式サイト` / `解約ページへ →`（赤） / `編集` / `解約済みにする`
-- 解約済みタブのボタン行：`🌐 公式サイト` / `編集` / `復元`
+- 契約中タブのボタン行：`🌐 公式サイト` / `解約ページへ →`（赤） / `編集` / `解約手続き済みにする`
+- 解約手続き済みカードのボタン行：`解約状態を戻す` / `アーカイブへ移動`
+- アーカイブタブのボタン行：`🌐 公式サイト` / `編集` / `復元`
 
 ### 6-3. 緊急度カラーロジック
 
@@ -251,7 +261,7 @@ headerBg: "#ffffff"
 ### 6-4. フィルタ・ソート
 
 - カテゴリフィルタ：Notion `subscriptions.category` のSelect optionsから取得し、先頭に「すべて」を追加する
-- 表示タブ：`契約中` / `解約済み`
+- 表示タブ：`契約中` / `アーカイブ`
 - ソート：更新日（デフォルト）/ 金額（月換算・家計計上額ベース降順）/ 名前（日本語順）
 - テキスト検索：サービス名の前方一致
 
