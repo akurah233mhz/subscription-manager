@@ -23,7 +23,7 @@ async function request(path, init) {
 }
 
 export const subscriptions = {
-  list: () => request("/api/subscriptions"),
+  list: (status = "active") => request(`/api/subscriptions?status=${encodeURIComponent(status)}`),
   create: (data) => request("/api/subscriptions", { method: "POST", body: JSON.stringify(data) }),
   update: (id, data) => request(`/api/subscriptions/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
   remove: (id) => request(`/api/subscriptions/${id}`, { method: "DELETE" }),

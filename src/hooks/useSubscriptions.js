@@ -3,6 +3,7 @@ import { subscriptions } from "../api.js";
 
 export function useSubscriptions() {
   const [items, setItems] = useState([]);
+  const [archivedItems, setArchivedItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -10,8 +11,9 @@ export function useSubscriptions() {
     setLoading(true);
     setError(null);
     try {
-      const data = await subscriptions.list();
-      setItems(data);
+      const [active, archived] = await Promise.all([subscriptions.list("active"), subscriptions.list("archived")]);
+      setItems(active);
+      setArchivedItems(archived);
     } catch (e) {
       setError(e);
     } finally {
@@ -31,14 +33,26 @@ export function useSubscriptions() {
 
   const update = useCallback(async (id, input) => {
     const updated = await subscriptions.update(id, input);
-    setItems((prev) => prev.map((s) => (s.id === id ? updated : s)));
+    if (updated.active) {
+      setItems((prev) => (prev.some((s) => s.id === id) ? prev.map((s) => (s.id === id ? updated : s)) : [...prev, updated]));
+      setArchivedItems((prev) => prev.filter((s) => s.id !== id));
+    } else {
+      setArchivedItems((prev) => (prev.some((s) => s.id === id) ? prev.map((s) => (s.id === id ? updated : s)) : [...prev, updated]));
+      setItems((prev) => prev.filter((s) => s.id !== id));
+    }
     return updated;
   }, []);
 
   const remove = useCallback(async (id) => {
-    await subscriptions.remove(id);
+    const archived = await subscriptions.remove(id);
     setItems((prev) => prev.filter((s) => s.id !== id));
+    setArchivedItems((prev) => (prev.some((s) => s.id === id) ? prev.map((s) => (s.id === id ? archived : s)) : [...prev, archived]));
   }, []);
 
-  return { items, loading, error, refresh, create, update, remove };
+  const restore = useCallback(
+    async (id) => update(id, { active: true }),
+    [update],
+  );
+
+  return { items, archivedItems, loading, error, refresh, create, update, remove, restore };
 }

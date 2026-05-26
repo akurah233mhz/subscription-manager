@@ -82,7 +82,9 @@
 
 | メソッド | パス | 説明 |
 |---|---|---|
-| GET | `/api/subscriptions` | 全サブスク取得（active=trueのみ） |
+| GET | `/api/subscriptions` | サブスク取得（既定はactive=trueのみ） |
+| GET | `/api/subscriptions?status=archived` | 解約済みアーカイブ取得（active=falseのみ） |
+| GET | `/api/subscriptions?status=all` | 全サブスク取得 |
 | POST | `/api/subscriptions` | 新規追加 |
 | PATCH | `/api/subscriptions/:id` | 更新 |
 | DELETE | `/api/subscriptions/:id` | 論理削除（active=false） |
@@ -138,9 +140,10 @@ subscription-manager/
 
 ```
 App起動
-  → GET /api/subscriptions
-  → stateに格納
-  → カード一覧レンダリング
+  → GET /api/subscriptions?status=active
+  → GET /api/subscriptions?status=archived
+  → 契約中/解約済みをstateに格納
+  → 選択中のタブに応じてカード一覧レンダリング
 
 追加/編集
   → フォーム入力 → POST or PATCH /api/subscriptions
@@ -148,7 +151,12 @@ App起動
 
 削除
   → DELETE /api/subscriptions/:id
-  → stateから除去
+  → Notionのactiveをfalseに更新
+  → 契約中stateから除去し、解約済みstateへ追加
+
+復元
+  → PATCH /api/subscriptions/:id { active: true }
+  → 解約済みstateから除去し、契約中stateへ追加
 
 PIN変更
   → 入力をSHA-256ハッシュ化
@@ -229,7 +237,8 @@ headerBg: "#ffffff"
 - 契約者・支払い方法（設定時のみ）
 - メモ（あれば）
 - 解約方法テキスト（グレーの枠内）
-- ボタン行：`🌐 公式サイト` / `解約ページへ →`（赤） / `編集` / `削除`
+- 契約中タブのボタン行：`🌐 公式サイト` / `解約ページへ →`（赤） / `編集` / `解約済みにする`
+- 解約済みタブのボタン行：`🌐 公式サイト` / `編集` / `復元`
 
 ### 6-3. 緊急度カラーロジック
 
@@ -242,6 +251,7 @@ headerBg: "#ffffff"
 ### 6-4. フィルタ・ソート
 
 - カテゴリフィルタ：Notion `subscriptions.category` のSelect optionsから取得し、先頭に「すべて」を追加する
+- 表示タブ：`契約中` / `解約済み`
 - ソート：更新日（デフォルト）/ 金額（月換算・家計計上額ベース降順）/ 名前（日本語順）
 - テキスト検索：サービス名の前方一致
 
@@ -311,7 +321,6 @@ async function hashPin(pin) {
 | 機能 | 概要 |
 |---|---|
 | 更新日通知 | Cloudflare Workers のCron Trigger + LINE Notify or メール |
-| 解約済みアーカイブ | active=falseの一覧表示 |
 | Supabase移行 | 本格権限管理が必要になった場合 |
 
 ---

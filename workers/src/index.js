@@ -47,7 +47,7 @@ async function route(request, url, env) {
   const { pathname } = url;
   const method = request.method;
 
-  if (pathname === "/api/subscriptions" && method === "GET") return listSubscriptions(env);
+  if (pathname === "/api/subscriptions" && method === "GET") return listSubscriptions(env, url.searchParams.get("status") || "active");
   if (pathname === "/api/subscriptions" && method === "POST") return createSubscription(await request.json(), env);
   if (pathname === "/api/meta" && method === "GET") return getMeta(env);
 
@@ -71,13 +71,20 @@ async function getMeta(env) {
   });
 }
 
-async function listSubscriptions(env) {
+async function listSubscriptions(env, status) {
+  const filter =
+    status === "archived"
+      ? { property: "active", checkbox: { equals: false } }
+      : status === "all"
+        ? undefined
+        : { property: "active", checkbox: { equals: true } };
+
   const data = await notionFetch(
     `/databases/${env.NOTION_SUBSCRIPTIONS_DB_ID}/query`,
     {
       method: "POST",
       body: JSON.stringify({
-        filter: { property: "active", checkbox: { equals: true } },
+        ...(filter ? { filter } : {}),
         page_size: 100,
       }),
     },

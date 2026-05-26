@@ -46,7 +46,7 @@ export default function App() {
     return () => window.removeEventListener("themechange", h);
   }, []);
 
-  const { items: subs, loading, error, create, update, remove } = useSubscriptions();
+  const { items: subs, archivedItems: archivedSubs, loading, error, create, update, remove, restore } = useSubscriptions();
   const { verifyPin, setPin, loading: settingsLoading } = useSettings();
   const {
     categories: notionCategories,
@@ -57,6 +57,7 @@ export default function App() {
   } = useMeta();
 
   const [filter, setFilter] = useState("すべて");
+  const [view, setView] = useState("active");
   const [sort, setSort] = useState("renewal");
   const [selectedId, setSelectedId] = useState(null);
   const [showForm, setShowForm] = useState(false);
@@ -90,15 +91,17 @@ export default function App() {
     if (filter !== "すべて" && !categories.includes(filter)) setFilter("すべて");
   }, [categories, filter]);
 
+  const visibleSubs = view === "archived" ? archivedSubs : subs;
+
   const filtered = useMemo(() => {
-    let list = subs.filter((s) => s.active);
+    let list = visibleSubs;
     if (filter !== "すべて") list = list.filter((s) => s.category === filter);
     if (searchText) list = list.filter((s) => s.name.toLowerCase().includes(searchText.toLowerCase()));
     if (sort === "renewal") list = [...list].sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate));
     if (sort === "amount") list = [...list].sort((a, b) => toMonthlyJpy(b) - toMonthlyJpy(a));
     if (sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ja"));
     return list;
-  }, [subs, filter, sort, searchText]);
+  }, [visibleSubs, filter, sort, searchText]);
 
   const totalMonthly = useMemo(
     () => subs.filter((s) => s.active).reduce((s, x) => s + toMonthlyJpy(x), 0),
@@ -160,7 +163,16 @@ export default function App() {
       setSelectedId(null);
       setDeleteTarget(null);
     } catch (e) {
-      alert(`削除に失敗: ${e.message}`);
+      alert(`解約済みへの移動に失敗: ${e.message}`);
+    }
+  }
+
+  async function restoreArchived(sub) {
+    try {
+      await restore(sub.id);
+      setSelectedId(null);
+    } catch (e) {
+      alert(`復元に失敗: ${e.message}`);
     }
   }
 
@@ -273,6 +285,33 @@ export default function App() {
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
+        <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+          {[
+            ["active", `契約中 ${subs.filter((s) => s.active).length}`],
+            ["archived", `解約済み ${archivedSubs.length}`],
+          ].map(([val, label]) => (
+            <button
+              key={val}
+              style={{
+                flex: 1,
+                background: view === val ? t.accent : t.surfaceAlt,
+                border: `1px solid ${view === val ? t.accent : t.border}`,
+                borderRadius: 8,
+                padding: "7px 10px",
+                color: view === val ? "#fff" : t.textSub,
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                setView(val);
+                setSelectedId(null);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginBottom: 8 }}>
           {categories.map((cat) => (
             <button
@@ -478,7 +517,7 @@ export default function App() {
                           🌐 公式サイト
                         </a>
                       )}
-                      {sub.cancelUrl && (
+                      {view === "active" && sub.cancelUrl && (
                         <button
                           style={{
                             background: t.cancelRedBg,
@@ -510,20 +549,38 @@ export default function App() {
                       >
                         編集
                       </button>
-                      <button
-                        style={{
-                          background: "transparent",
-                          color: t.textMute,
-                          border: "none",
-                          borderRadius: 8,
-                          padding: "8px 10px",
-                          fontSize: 13,
-                          cursor: "pointer",
-                        }}
-                        onClick={() => setDeleteTarget(sub)}
-                      >
-                        削除
-                      </button>
+                      {view === "active" ? (
+                        <button
+                          style={{
+                            background: "transparent",
+                            color: t.textMute,
+                            border: "none",
+                            borderRadius: 8,
+                            padding: "8px 10px",
+                            fontSize: 13,
+                            cursor: "pointer",
+                          }}
+                          onClick={() => setDeleteTarget(sub)}
+                        >
+                          解約済みにする
+                        </button>
+                      ) : (
+                        <button
+                          style={{
+                            background: t.surfaceAlt,
+                            color: t.text,
+                            border: `1px solid ${t.border}`,
+                            borderRadius: 8,
+                            padding: "8px 14px",
+                            fontSize: 13,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                          onClick={() => restoreArchived(sub)}
+                        >
+                          復元
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -531,7 +588,9 @@ export default function App() {
             );
           })}
         {!loading && !error && filtered.length === 0 && (
-          <div style={{ textAlign: "center", color: t.textMute, padding: "40px 0" }}>該当するサブスクがありません</div>
+          <div style={{ textAlign: "center", color: t.textMute, padding: "40px 0" }}>
+            {view === "archived" ? "解約済みのサブスクはありません" : "該当するサブスクがありません"}
+          </div>
         )}
       </div>
 
@@ -699,8 +758,10 @@ export default function App() {
       {deleteTarget && (
         <div style={ov()} onClick={() => setDeleteTarget(null)}>
           <div style={{ ...mod(t), maxWidth: 340 }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>削除の確認</div>
-            <p style={{ color: t.textSub, fontSize: 14, marginBottom: 20 }}>「{deleteTarget.name}」を削除しますか？</p>
+            <div style={{ fontSize: 16, fontWeight: 700, color: t.text, marginBottom: 8 }}>解約済みへ移動</div>
+            <p style={{ color: t.textSub, fontSize: 14, marginBottom: 20 }}>
+              「{deleteTarget.name}」を解約済みアーカイブへ移動しますか？
+            </p>
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <button
                 style={{
@@ -729,7 +790,7 @@ export default function App() {
                 }}
                 onClick={confirmDelete}
               >
-                削除する
+                移動する
               </button>
             </div>
           </div>
