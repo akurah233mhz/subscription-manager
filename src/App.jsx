@@ -1,6 +1,16 @@
 import { useState, useMemo, useEffect } from "react";
 import { makeTheme } from "./theme.js";
-import { daysUntil, formatDate, toMonthly, toMonthlyJpy, effectiveAmountJpy, formatAmount, formatJpy } from "./utils.js";
+import {
+  daysUntil,
+  formatDate,
+  parseDate,
+  nextRenewalDate,
+  toMonthly,
+  toMonthlyJpy,
+  effectiveAmountJpy,
+  formatAmount,
+  formatJpy,
+} from "./utils.js";
 import { useSubscriptions } from "./hooks/useSubscriptions.js";
 import { useSettings } from "./hooks/useSettings.js";
 import { useMeta } from "./hooks/useMeta.js";
@@ -15,6 +25,18 @@ const CURRENCIES = ["JPY", "USD", "EUR", "GBP"];
 
 function uniq(values) {
   return [...new Set(values.filter(Boolean))];
+}
+
+// 解約手続き済みの renewalDate は「利用可能期限」なので繰り上げない。
+// 契約中のものは過去日でも次回更新日まで繰り上げる。
+function effectiveRenewalDate(sub) {
+  return sub.cancelled ? parseDate(sub.renewalDate) : nextRenewalDate(sub.renewalDate, sub.cycle);
+}
+
+// 更新日ソート用。日付なしは末尾に置く（Infinity同士の差がNaNになるのを避ける）
+function renewalSortKey(sub) {
+  const d = effectiveRenewalDate(sub);
+  return d ? d.getTime() : Number.MAX_SAFE_INTEGER;
 }
 
 function emptyForm(category) {
@@ -97,7 +119,7 @@ export default function App() {
     let list = visibleSubs;
     if (filter !== "すべて") list = list.filter((s) => s.category === filter);
     if (searchText) list = list.filter((s) => s.name.toLowerCase().includes(searchText.toLowerCase()));
-    if (sort === "renewal") list = [...list].sort((a, b) => new Date(a.renewalDate) - new Date(b.renewalDate));
+    if (sort === "renewal") list = [...list].sort((a, b) => renewalSortKey(a) - renewalSortKey(b));
     if (sort === "amount") list = [...list].sort((a, b) => toMonthlyJpy(b) - toMonthlyJpy(a));
     if (sort === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ja"));
     return list;
@@ -381,16 +403,19 @@ export default function App() {
         {!loading &&
           !error &&
           filtered.map((sub) => {
-            const days = daysUntil(sub.renewalDate);
+            const renewalDate = effectiveRenewalDate(sub);
+            const days = daysUntil(renewalDate);
             const urgent = days <= 7;
             const soon = days <= 30;
             const isOpen = selectedId === sub.id;
             const currency = sub.currency || "JPY";
             const amountJpy = effectiveAmountJpy(sub);
             const isForeign = currency !== "JPY";
-            const dateLabel = sub.cancelled
-              ? `${formatDate(sub.renewalDate)}まで利用可`
-              : `${days <= 0 ? "本日更新" : `${days}日後に更新`} · ${formatDate(sub.renewalDate)}`;
+            const dateLabel = !renewalDate
+              ? "更新日未設定"
+              : sub.cancelled
+                ? `${formatDate(renewalDate)}まで利用可`
+                : `${days === 0 ? "本日更新" : `${days}日後に更新`} · ${formatDate(renewalDate)}`;
             return (
               <div
                 key={sub.id}

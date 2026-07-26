@@ -52,7 +52,7 @@
 | currency | Select | `JPY` / `USD` / `EUR` / `GBP` |
 | amountJpy | Number | 家計集計用の円換算額 |
 | cycle | Select | `monthly` / `yearly` |
-| renewalDate | Date | 次回更新日 |
+| renewalDate | Date | 更新日の基準日（過去日でよい。表示側で `cycle` 分繰り上げて次回更新日を求める） |
 | url | URL | 公式サイト |
 | cancelUrl | URL | 解約ページ |
 | cancelMethod | Rich Text | 解約手順テキスト |
@@ -249,6 +249,13 @@ headerBg: "#ffffff"
 - 契約中タブのボタン行：`🌐 公式サイト` / `解約ページへ →`（赤） / `編集` / `解約手続き済みにする`
 - 解約手続き済みカードのボタン行：`解約状態を戻す` / `アーカイブへ移動`
 - アーカイブタブのボタン行：`🌐 公式サイト` / `編集` / `復元`
+
+**次回更新日の算出**
+
+- Notion の `renewalDate` は自動では進まないため、フロント側で `cycle`（monthly=1ヶ月 / yearly=12ヶ月）分を今日以降になるまで繰り上げて表示する
+- 繰り上げは常に基準日からの月数で計算する（月末日は移動先の月の日数へ丸めるが、翌月以降にドリフトしない。例: 1/31 → 2/28 → 3/31）
+- 日付文字列はローカルタイムの0時として解釈する（`new Date("YYYY-MM-DD")` はUTC0時になりJSTで1日ずれるため）
+- `cancelled=true` の `renewalDate` は「利用可能期限」なので繰り上げない
 
 ### 6-3. 緊急度カラーロジック
 

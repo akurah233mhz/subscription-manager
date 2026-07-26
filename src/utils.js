@@ -1,13 +1,62 @@
-export function daysUntil(dateStr) {
-  if (!dateStr) return Infinity;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return Math.ceil((new Date(dateStr) - today) / 86400000);
+const MS_PER_DAY = 86400000;
+
+// "YYYY-MM-DD" をローカルタイムの0時として解釈する。
+// new Date("2026-07-27") は UTC 0時になるため、JSTではそのまま比較すると1日ずれる。
+export function parseDate(dateStr) {
+  if (!dateStr) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dateStr));
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime()) ? null : d;
 }
 
-export function formatDate(dateStr) {
-  if (!dateStr) return "";
-  const d = new Date(dateStr);
+export function startOfToday() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+// 基準日から addMonths ヶ月後。月末日は移動先の月の日数に丸める（1/31 → 2/28）。
+function addMonths(year, month, day, addMonths) {
+  const d = new Date(year, month + addMonths, 1);
+  const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, lastDay));
+  return d;
+}
+
+// Notionの renewalDate は「ある回の更新日」で、過ぎても自動では進まない。
+// 契約サイクル分を繰り上げて、今日以降の次回更新日を求める。
+export function nextRenewalDate(dateStr, cycle) {
+  const base = parseDate(dateStr);
+  if (!base) return null;
+  const today = startOfToday();
+  if (base >= today) return base;
+
+  const year = base.getFullYear();
+  const month = base.getMonth();
+  const day = base.getDate();
+  const step = cycle === "yearly" ? 12 : 1;
+
+  // 丸めによるずれを避けるため、繰り上げは常に基準日からの月数で計算する
+  const elapsed = (today.getFullYear() - year) * 12 + (today.getMonth() - month);
+  let n = Math.max(0, Math.floor(elapsed / step));
+  let next = addMonths(year, month, day, n * step);
+  while (next < today) {
+    n += 1;
+    next = addMonths(year, month, day, n * step);
+  }
+  return next;
+}
+
+export function daysUntil(date) {
+  const d = date instanceof Date ? date : parseDate(date);
+  if (!d) return Infinity;
+  return Math.round((d - startOfToday()) / MS_PER_DAY);
+}
+
+export function formatDate(date) {
+  const d = date instanceof Date ? date : parseDate(date);
+  if (!d) return "";
   return `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, "0")}/${String(d.getDate()).padStart(2, "0")}`;
 }
 
